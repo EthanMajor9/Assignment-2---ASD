@@ -5,7 +5,9 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <sstream>
 
+//#define PRE_RELEASE
 
 #define STUDENT_DATA_FILENAME "StudentData.txt"
 #define STUDENT_DATA_EMAILS_FILENAME "StudentData_Emails.txt"
@@ -14,19 +16,27 @@
 struct STUDENT_DATA {
 	std::string firstName;
 	std::string lastName;
+	std::string email;
 };
 
 std::vector<STUDENT_DATA> ParseDataFile(std::string dataFilename);
 STUDENT_DATA ParseFirstAndLastName(std::string lineToParse);
+void PrintStudentData(std::vector<STUDENT_DATA> studentData);
 
 int main()
 {
-	std::vector<STUDENT_DATA> completeStudentData = ParseDataFile(STUDENT_DATA_FILENAME);
+	std::vector<STUDENT_DATA> completeStudentData;
+
+#ifdef PRE_RELEASE
+	std::cout << "Program running in PreRelease mode" << std::endl << std::endl;
+	completeStudentData = ParseDataFile(STUDENT_DATA_EMAILS_FILENAME);
+#else
+	std::cout << "Program running in Standard mode" << std::endl << std::endl ;
+	completeStudentData = ParseDataFile(STUDENT_DATA_FILENAME);
+#endif
 
 #ifdef _DEBUG
-	for (int i = 0; i < completeStudentData.size(); i++) {
-		std::cout << completeStudentData[i].firstName << " " << completeStudentData[i].lastName << std::endl;
-	}
+	PrintStudentData(completeStudentData);
 #endif
 
 	return 1;
@@ -40,17 +50,20 @@ std::vector<STUDENT_DATA> ParseDataFile(std::string dataFilename) {
 	// Open data file
 	dataFile.open(dataFilename);
 
-	if (dataFile.is_open()) {
-		// Read file line by line until EOF
-		while (dataFile) {
-			std::string line;
-			std::getline(dataFile, line);
+	if (!dataFile.is_open()) {
+		std::cerr << "Error opening file: " << dataFilename << std::endl;
+		return completeStudentData;
+	}
 
-			// Construct student object with parsed information
-			STUDENT_DATA newStudentData = ParseFirstAndLastName(line);
-			if (newStudentData.firstName == "") break;
-			completeStudentData.push_back(newStudentData);
-		}
+	// Read file line by line until EOF
+	std::string line;
+	while (dataFile) {
+		std::getline(dataFile, line);
+
+		// Construct student object with parsed information
+		STUDENT_DATA newStudentData = ParseFirstAndLastName(line);
+		if (newStudentData.firstName.empty()) break;
+		completeStudentData.push_back(newStudentData);
 	}
 
 	return completeStudentData;
@@ -60,12 +73,32 @@ std::vector<STUDENT_DATA> ParseDataFile(std::string dataFilename) {
 STUDENT_DATA ParseFirstAndLastName(std::string lineToParse) {
 	STUDENT_DATA newStudentData;
 
-	if (lineToParse == "") return newStudentData;
+	if (lineToParse.empty()) return newStudentData;
+	
+	std::stringstream stringStream(lineToParse);
+	std::vector<std::string> dataFields;
+	std::string field;
 
-	// Extract name and last name from line read from file
-	int pos = lineToParse.find(DATA_DELIMITER);
-	newStudentData.firstName = lineToParse.substr(pos + 2);
-	newStudentData.lastName = lineToParse.substr(0, pos);
+	while (std::getline(stringStream, field, DATA_DELIMITER)) {
+		dataFields.push_back(field);
+	}
+
+	newStudentData.firstName = dataFields[1];
+	newStudentData.lastName = dataFields[0];
+
+	if (dataFields.size() > 2)
+		newStudentData.email = dataFields[2];
 
 	return newStudentData;
+}
+
+
+void PrintStudentData(std::vector<STUDENT_DATA> studentData) {
+	for (int i = 0; i < studentData.size(); i++) {
+		std::cout << studentData[i].firstName << '\t' << studentData[i].lastName;
+		if (studentData[i].email != "") {
+			std::cout << '\t' << studentData[i].email << std::endl;
+		}
+		else { std::cout << std::endl; }
+	}
 }
