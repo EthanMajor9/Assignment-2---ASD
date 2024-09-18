@@ -23,6 +23,12 @@ int main()
 {
 	std::vector<STUDENT_DATA> completeStudentData = ParseDataFile(STUDENT_DATA_FILENAME);
 
+#ifdef _DEBUG
+	for (int i = 0; i < completeStudentData.size(); i++) {
+		std::cout << completeStudentData[i].firstName << " " << completeStudentData[i].lastName << std::endl;
+	}
+#endif
+
 	return 1;
 }
 
